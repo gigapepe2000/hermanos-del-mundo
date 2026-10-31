@@ -50,6 +50,11 @@ th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--linea);whit
 td.l{white-space:normal;min-width:220px}
 th{background:var(--panel);color:var(--oro);font-weight:600;position:sticky;top:0}
 tbody tr:hover{background:#15213a}
+.c{text-align:center;cursor:default;user-select:none}
+body.admin td.c{cursor:pointer}
+td.ok{color:#7fd19a;font-weight:600}td.mal{color:var(--error);font-weight:600}
+th .acc{margin:4px 0 0;gap:3px;flex-wrap:nowrap}
+nav select{margin:auto 0 auto auto;width:auto}
 #modal{position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:16px;z-index:5}
 #f-miembro{background:var(--panel);border:1px solid var(--linea);border-radius:10px;padding:22px;width:100%;max-width:640px;max-height:92vh;overflow:auto}
 #f-campos{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;margin-top:14px}
@@ -80,6 +85,9 @@ tbody tr:hover{background:#15213a}
   <nav id="nav">
     <button data-t="avisos" class="on">Avisos</button>
     <button data-t="miembros">Miembros</button>
+    <button data-t="asistencia">Asistencia</button>
+    <button data-t="cuotas">Cuotas</button>
+    <select id="anio" aria-label="Año" hidden></select>
   </nav>
   <main>
     <section id="t-avisos">
@@ -100,6 +108,18 @@ tbody tr:hover{background:#15213a}
         <button class="btn adm" id="nuevo">Nuevo miembro</button>
       </div>
       <div class="scroll"><table><thead><tr id="th"></tr></thead><tbody id="tb"></tbody></table></div>
+    </section>
+    <section id="t-asistencia" hidden>
+      <div class="bar adm"><input id="ses-fecha" type="date" style="flex:0 0 auto;min-width:0;width:auto"><button class="btn" id="nueva-ses">Añadir sesión</button></div>
+      <div class="scroll"><table><thead><tr id="as-th"></tr></thead><tbody id="as-tb"></tbody></table></div>
+      <p class="vacio" id="as-vacio" hidden>No hay sesiones registradas en este año.</p>
+      <p class="vacio">✅ asistió, ⬜ ausente, ➖ justificada (no cuenta en el porcentaje).</p>
+    </section>
+
+    <section id="t-cuotas" hidden>
+      <div class="bar adm"><button class="btn" id="nueva-extra">Añadir columna</button></div>
+      <div class="scroll"><table><thead><tr id="cu-th"></tr></thead><tbody id="cu-tb"></tbody></table></div>
+      <p class="vacio">✅ pagada, 🆓 exonerada, ⬜ pendiente. El balance cuenta los meses pagados menos los transcurridos del año.</p>
     </section>
   </main>
 </div>
@@ -161,6 +181,7 @@ async function entrar(session) {
   $('quien').textContent = (rol === 'admin' ? 'Administrador: ' : 'Miembro: ') + (data.nombre || session.user.email);
   $('login').hidden = true; $('app').hidden = false;
   await Promise.all([cargarAvisos(), cargarMiembros()]);
+  cargarAC();
 }
 
 $('f-login').onsubmit = async e => {
@@ -175,7 +196,8 @@ $('salir').onclick = async () => { await sb.auth.signOut(); location.reload(); }
 $('nav').onclick = e => {
   const t = e.target.dataset.t; if (!t) return;
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b === e.target));
-  $('t-avisos').hidden = t !== 'avisos'; $('t-miembros').hidden = t !== 'miembros';
+  ['avisos','miembros','asistencia','cuotas'].forEach(x => $('t-' + x).hidden = x !== t);
+  $('anio').hidden = !['asistencia','cuotas'].includes(t);
 };
 
 /* ---------- Avisos ---------- */
@@ -216,6 +238,7 @@ async function cargarMiembros() {
   const { data, error } = await sb.from('miembros').select('*');
   if (error) { toast('Error al cargar miembros: ' + error.message); return; }
   miembros = data; renderMiembros();
+  if ($('anio').value) { renderAs(); renderCu(); }
 }
 const clave = m => (m.fecha_afiliacion || m.fecha_iniciacion || '9999-12-31') + '_' + (m.fecha_nacimiento || '9999-12-31');
 
@@ -282,6 +305,138 @@ $('f-miembro').onsubmit = async e => {
   const { error } = editId ? await sb.from('miembros').update(r).eq('id', editId) : await sb.from('miembros').insert(r);
   if (error) return err(error.code === '23505' ? 'Ese CI ya está registrado en otro miembro.' : 'No se pudo guardar: ' + error.message);
   $('modal').hidden = true; toast(editId ? 'Miembro actualizado.' : 'Miembro registrado.'); cargarMiembros();
+};
+
+/* ---------- Asistencia y cuotas ---------- */
+const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const SIA = ['⬜','✅','➖'], SIC = ['⬜','✅','🆓'];
+let SES = [], AS = {}, CU = {}, EX = [], EM = {};
+const ordenN = () => [...miembros].sort((a, b) => clave(a).localeCompare(clave(b)));
+// Supabase devuelve como máximo 1000 filas por consulta: se pide por páginas
+async function todo(mk) {
+  let r = [], i = 0;
+  for (;;) {
+    const { data, error } = await mk().range(i, i + 999);
+    if (error) throw error;
+    r = r.concat(data);
+    if (data.length < 1000) return r;
+    i += 1000;
+  }
+}
+async function cargarAC() {
+  try {
+    const [s, a, c, e, em] = await Promise.all([
+      todo(() => sb.from('sesiones').select('*').order('fecha').order('id')),
+      todo(() => sb.from('asistencia').select('*').order('sesion_id').order('miembro_id')),
+      todo(() => sb.from('cuotas').select('*').order('miembro_id').order('anio').order('mes')),
+      todo(() => sb.from('cuotas_extra').select('*').order('created_at').order('id')),
+      todo(() => sb.from('cuotas_extra_marcas').select('*').order('extra_id').order('miembro_id'))]);
+    SES = s; EX = e; AS = {}; CU = {}; EM = {};
+    a.forEach(x => AS[x.miembro_id + '|' + x.sesion_id] = x.marca);
+    c.forEach(x => CU[x.miembro_id + '|' + x.anio + '|' + x.mes] = x.marca);
+    em.forEach(x => EM[x.extra_id + '|' + x.miembro_id] = x.marca);
+  } catch (err) { toast('Error al cargar: ' + err.message); }
+  poblarAnios(); renderAs(); renderCu();
+}
+function poblarAnios() {
+  const hoy = new Date().getFullYear(), ys = new Set([hoy, hoy + 1]), sel = $('anio'), cur = sel.value || hoy;
+  SES.forEach(s => ys.add(+s.fecha.slice(0, 4)));
+  EX.forEach(x => ys.add(x.anio));
+  Object.keys(CU).forEach(k => ys.add(+k.split('|')[1]));
+  sel.innerHTML = [...ys].sort().map(y => `<option${y == cur ? ' selected' : ''}>${y}</option>`).join('');
+}
+$('anio').onchange = () => { renderAs(); renderCu(); };
+const nom = (m, i) => `<td>${i + 1}</td><td>${esc(m.nombres)}</td><td><strong>${esc(m.apellidos)}</strong></td>`;
+const btns = (e, d) => `<span class="adm acc"><button class="btn sec mini" data-e="${e}" title="Editar">✏</button><button class="btn sec mini" data-d="${d}" title="Eliminar">✕</button></span>`;
+
+function renderAs() {
+  const ses = SES.filter(s => s.fecha.startsWith($('anio').value));
+  $('as-vacio').hidden = ses.length > 0;
+  $('as-th').innerHTML = '<th>#</th><th>Nombres</th><th>Apellidos</th><th>%</th><th>Aus.<br>consec.</th>' +
+    ses.map(s => `<th>${+s.fecha.slice(8)}${MES[+s.fecha.slice(5, 7) - 1]}${btns(s.id, s.id)}</th>`).join('');
+  $('as-tb').innerHTML = ordenN().map((m, i) => {
+    const mk = ses.map(s => AS[m.id + '|' + s.id] || 0);
+    const ok = mk.filter(v => v === 1).length, den = ses.length - mk.filter(v => v === 2).length;
+    let r = 0;
+    for (let k = mk.length - 1; k >= 0; k--) { if (mk[k] === 2) continue; if (mk[k] === 1) break; r++; }
+    return `<tr>${nom(m, i)}<td>${den > 0 ? Math.round(ok / den * 100) + '%' : '—'}</td><td class="${r === 0 ? 'ok' : r > 3 ? 'mal' : ''}">${r}</td>` +
+      ses.map((s, k) => `<td class="c" data-m="${m.id}" data-s="${s.id}">${SIA[mk[k]]}</td>`).join('') + '</tr>';
+  }).join('');
+}
+$('as-tb').onclick = async e => {
+  const td = e.target.closest('td.c'); if (!td || rol !== 'admin') return;
+  const k = td.dataset.m + '|' + td.dataset.s, v = ((AS[k] || 0) + 1) % 3;
+  const r = v ? await sb.from('asistencia').upsert({ sesion_id: td.dataset.s, miembro_id: td.dataset.m, marca: v })
+              : await sb.from('asistencia').delete().eq('sesion_id', td.dataset.s).eq('miembro_id', td.dataset.m);
+  if (r.error) return toast('Error: ' + r.error.message);
+  AS[k] = v; renderAs();
+};
+$('nueva-ses').onclick = async () => {
+  const f = $('ses-fecha').value; if (!f) return toast('Elige la fecha de la sesión.');
+  const { error } = await sb.from('sesiones').insert({ fecha: f });
+  if (error) return toast('Error: ' + error.message);
+  toast('Sesión añadida.'); cargarAC();
+};
+$('as-th').onclick = async e => {
+  const b = e.target.closest('button'); if (!b) return; let r;
+  if (b.dataset.d) {
+    if (!confirm('¿Eliminar esta sesión y todas sus asistencias?')) return;
+    r = await sb.from('sesiones').delete().eq('id', b.dataset.d);
+  } else {
+    const s = SES.find(x => x.id === b.dataset.e), f = prompt('Nueva fecha (AAAA-MM-DD):', s.fecha);
+    if (!f || !/^\d{4}-\d{2}-\d{2}$/.test(f)) return;
+    r = await sb.from('sesiones').update({ fecha: f }).eq('id', s.id);
+  }
+  if (r.error) return toast('Error: ' + r.error.message);
+  cargarAC();
+};
+
+function renderCu() {
+  const y = +$('anio').value, hoy = new Date(), ex = EX.filter(x => x.anio === y);
+  const ref = y < hoy.getFullYear() ? 12 : y > hoy.getFullYear() ? 0 : hoy.getMonth() + 1;
+  $('cu-th').innerHTML = '<th>#</th><th>Nombres</th><th>Apellidos</th><th>Balance</th>' + MES.map(m => `<th>${m}</th>`).join('') +
+    ex.map(x => `<th>${esc(x.titulo)}${btns(x.id, x.id)}</th>`).join('');
+  $('cu-tb').innerHTML = ordenN().map((m, i) => {
+    let p = 0, x2 = 0;
+    for (let k = 1; k <= 12; k++) { const v = CU[m.id + '|' + y + '|' + k] || 0; if (v === 1) p++; if (v === 2 && k <= ref) x2++; }
+    const b = p + x2 - ref;
+    return `<tr>${nom(m, i)}<td class="${b <= -3 ? 'mal' : b >= 1 ? 'ok' : ''}">${b}</td>` +
+      MES.map((_, k) => `<td class="c" data-m="${m.id}" data-k="${k + 1}">${SIC[CU[m.id + '|' + y + '|' + (k + 1)] || 0]}</td>`).join('') +
+      ex.map(x => `<td class="c" data-m="${m.id}" data-x="${x.id}">${SIC[EM[x.id + '|' + m.id] || 0]}</td>`).join('') + '</tr>';
+  }).join('');
+}
+$('cu-tb').onclick = async e => {
+  const td = e.target.closest('td.c'); if (!td || rol !== 'admin') return;
+  const y = +$('anio').value, m = td.dataset.m; let r, k, v;
+  if (td.dataset.x) {
+    k = td.dataset.x + '|' + m; v = ((EM[k] || 0) + 1) % 3;
+    r = await sb.from('cuotas_extra_marcas').upsert({ extra_id: td.dataset.x, miembro_id: m, marca: v });
+    if (!r.error) EM[k] = v;
+  } else {
+    k = m + '|' + y + '|' + td.dataset.k; v = ((CU[k] || 0) + 1) % 3;
+    r = await sb.from('cuotas').upsert({ miembro_id: m, anio: y, mes: +td.dataset.k, marca: v });
+    if (!r.error) CU[k] = v;
+  }
+  if (r.error) return toast('Error: ' + r.error.message);
+  renderCu();
+};
+$('nueva-extra').onclick = async () => {
+  const t = (prompt('Título de la nueva columna (ej.: Cuota especial):') || '').trim(); if (!t) return;
+  const { error } = await sb.from('cuotas_extra').insert({ anio: +$('anio').value, titulo: t });
+  if (error) return toast('Error: ' + error.message);
+  cargarAC();
+};
+$('cu-th').onclick = async e => {
+  const b = e.target.closest('button'); if (!b) return; let r;
+  if (b.dataset.d) {
+    if (!confirm('¿Eliminar esta columna y todas sus marcas?')) return;
+    r = await sb.from('cuotas_extra').delete().eq('id', b.dataset.d);
+  } else {
+    const x = EX.find(z => z.id === b.dataset.e), t = (prompt('Nuevo título:', x.titulo) || '').trim(); if (!t) return;
+    r = await sb.from('cuotas_extra').update({ titulo: t }).eq('id', x.id);
+  }
+  if (r.error) return toast('Error: ' + r.error.message);
+  cargarAC();
 };
 
 /* ---------- Inicio ---------- */
