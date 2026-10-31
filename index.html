@@ -70,6 +70,23 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
 #f-campos label:last-child{grid-column:1/-1}
 @media(max-width:560px){#f-campos{grid-template-columns:1fr}}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--oro);color:#1a1405;padding:9px 18px;border-radius:6px;font-weight:600;z-index:9}
+.solo-imp{display:none}
+@media print{
+  @page{size:landscape;margin:12mm}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  :root{--fondo:#fff;--panel:#fff;--linea:#999;--texto:#000;--tenue:#444;--oro:#000}
+  body{background:#fff;color:#000;font-size:11px}
+  header,nav,#franja,#toast,#modal,.bar,.btn,.adm,.acc{display:none!important}
+  main{padding:0;max-width:none}
+  main>section{display:none!important}
+  main>section.imp,.solo-imp{display:block!important}
+  .scroll{max-height:none!important;min-height:0;overflow:visible!important;border:0}
+  th,td{position:static!important;box-shadow:none!important;padding:3px 5px;white-space:normal}
+  th{background:#e8e8e8!important;color:#000}
+  table{font-size:9px}thead{display:table-header-group}tr{break-inside:avoid}
+  td.ok{color:#060}td.mal{color:#a00}.card{break-inside:avoid}
+  #fx.adm{display:block!important}body.sin-fx #fx.adm{display:none!important}
+}
 </style>
 </head>
 <body>
@@ -89,7 +106,7 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
 <div id="app" hidden>
   <header>
     <div><strong>R. y M. Logia “Hermanos del Mundo”</strong><small id="quien"></small></div>
-    <div class="acc" style="margin:0"><label class="btn sec adm">Cambiar portada<input id="portada-f" type="file" accept="image/*" hidden></label><button class="btn sec" id="salir">Cerrar sesión</button></div>
+    <div class="acc" style="margin:0"><label class="btn sec adm">Cambiar portada<input id="portada-f" type="file" accept="image/*" hidden></label><button class="btn sec adm" id="imprimir" hidden>Imprimir</button><button class="btn sec" id="salir">Cerrar sesión</button></div>
   </header>
   <nav id="nav">
     <button data-t="avisos" class="on">Avisos</button>
@@ -102,6 +119,7 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
     <select id="anio" aria-label="Año" hidden></select>
   </nav>
   <main>
+    <div id="p-cab" class="solo-imp"><h1 style="font-size:18px">R. y M. Logia “Hermanos del Mundo”</h1><h2 id="p-t" style="margin:4px 0;font-size:15px"></h2><p id="p-f" style="margin:2px 0"></p><p id="p-d" style="margin:2px 0;color:#444"></p></div>
     <div id="franja" class="card" hidden><strong id="fr-n"></strong> miembros coinciden con los filtros. <button class="btn sec mini" id="fr-x">Limpiar filtros</button></div>
     <section id="t-avisos">
       <form id="f-aviso" class="card adm">
@@ -132,7 +150,7 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
       <div class="acc adm"><button class="btn sec" id="resp">Descargar respaldo completo</button></div>
     </section>
 
-    <section id="t-fondos" hidden><div id="fo"></div><div id="fx" class="adm"></div></section>
+    <section id="t-fondos" hidden><label class="chk adm" style="margin-bottom:6px"><input id="imp-fx" type="checkbox">Incluir el fondo extra al imprimir</label><div id="fo"></div><div id="fx" class="adm"></div></section>
 
     <section id="t-asistencia" hidden>
       <div class="bar adm"><input id="ses-fecha" type="date" style="flex:0 0 auto;min-width:0;width:auto"><button class="btn" id="nueva-ses">Añadir sesión</button></div>
@@ -220,6 +238,7 @@ $('f-login').onsubmit = async e => {
 $('salir').onclick = async () => { await sb.auth.signOut(); location.reload(); };
 $('nav').onclick = e => {
   const t = e.target.dataset.t; if (!t) return;
+  TAB = t; $('imprimir').hidden = !IMP.includes(t);
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b === e.target));
   ['avisos','miembros','busqueda','estadisticas','asistencia','cuotas','fondos'].forEach(x => $('t-' + x).hidden = x !== t);
   $('anio').hidden = !['asistencia','cuotas','fondos'].includes(t);
@@ -341,7 +360,7 @@ $('f-miembro').onsubmit = async e => {
 const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const SIA = ['⬜','✅','➖'], SIC = ['⬜','✅','🆓'];
 let SES = [], AS = {}, CU = {}, EX = [], EM = {};
-let NUM = {}, IDS = null;
+let NUM = {}, IDS = null, FT = '';
 const porAp = (a, b) => a.apellidos.localeCompare(b.apellidos, 'es') || a.nombres.localeCompare(b.nombres, 'es');
 const ordenN = () => {   // el # siempre es el de antigüedad; el orden mostrado lo elige Búsqueda avanzada
   const s = [...miembros].sort((a, b) => clave(a).localeCompare(clave(b)));
@@ -554,13 +573,26 @@ $('fa-ok').onclick = () => {
     if (f.ba !== null && !cmp('fa-ba', balance(m, y), f.ba)) return false;
     return true;
   }).map(m => m.id));
+  const ot = id => $(id + '-op').value === 'gte' ? '≥ ' : '≤ ', t = [];
+  if (f.ed !== null) t.push('edad desde ' + f.ed);
+  if (f.eh !== null) t.push('edad hasta ' + f.eh);
+  if (f.gr) t.push('grado ' + f.gr);
+  if (f.mes) t.push('mes de ' + MES[f.mes - 1] + ' (' + [...document.querySelectorAll('#fa-cols input:checked')].map(c => c.parentNode.textContent.toLowerCase()).join(', ') + ')');
+  if (f.am !== null) t.push('años de Maestro ≥ ' + f.am);
+  if (f.fu) t.push('solo funcionarios');
+  if (f.ob) t.push('observaciones contiene “' + $('fa-ob').value.trim() + '”');
+  if (f.di) t.push('dirección contiene “' + $('fa-di').value.trim() + '”');
+  if (f.ap !== null) t.push('asistencia ' + ot('fa-ap') + f.ap + '%');
+  if (f.au !== null) t.push('ausencias consecutivas ' + ot('fa-au') + f.au);
+  if (f.ba !== null) t.push('balance de cuotas ' + ot('fa-ba') + f.ba);
+  FT = IDS ? t.join('; ') : '';
   $('franja').hidden = !IDS; if (IDS) $('fr-n').textContent = IDS.size;
   refrescarTodo();
   document.querySelector('#nav [data-t=miembros]').click();
 };
 $('fa-x').onclick = $('fr-x').onclick = () => {
   document.querySelectorAll('#fa input:not([type=checkbox]),#fa-grado,#fa-mes').forEach(i => i.value = '');
-  $('fa-fu').checked = false; IDS = null; $('franja').hidden = true; refrescarTodo();
+  $('fa-fu').checked = false; IDS = null; FT = ''; $('franja').hidden = true; refrescarTodo();
 };
 
 /* ---------- Estadísticas y respaldo ---------- */
@@ -633,6 +665,23 @@ function renderFon() {
       || '<tr><td colspan="9" class="vacio">Sin cierres registrados en este año.</td></tr>';
   });
 }
+
+/* ---------- Impresión (solo administradores) ---------- */
+const IMP = ['miembros','estadisticas','asistencia','cuotas','fondos'];
+const TIT = { miembros: 'Miembros', estadisticas: 'Estadísticas', asistencia: 'Asistencia', cuotas: 'Cuotas', fondos: 'Fondos' };
+let TAB = 'avisos';
+$('imprimir').onclick = () => {
+  const lista = ['miembros','asistencia','cuotas'].includes(TAB), conAnio = ['asistencia','cuotas','fondos'].includes(TAB), f = [];
+  if (lista && IDS) f.push('Filtros: ' + FT + ' (' + IDS.size + ' de ' + miembros.length + ' miembros)');
+  if (TAB === 'miembros' && $('q').value.trim()) f.push('Búsqueda: “' + $('q').value.trim() + '”');
+  if (lista) f.push('Orden: ' + ($('ord').value === 'ap' ? 'por apellidos' : 'por número'));
+  $('p-t').textContent = TIT[TAB] + (conAnio ? ' ' + $('anio').value : '');
+  $('p-f').textContent = f.join('. ');
+  $('p-d').textContent = 'Impreso el ' + new Date().toLocaleDateString('es');
+  document.body.classList.toggle('sin-fx', !$('imp-fx').checked);
+  document.querySelectorAll('main>section').forEach(s => s.classList.toggle('imp', s.id === 't-' + TAB));
+  window.print();
+};
 
 /* ---------- Inicio ---------- */
 (async () => {
