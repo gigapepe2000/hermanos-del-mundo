@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Logia “Hermanos del Mundo”</title>
+<style>
+:root{--fondo:#101826;--panel:#17233a;--linea:#2b3a57;--texto:#e8e4d8;--tenue:#9aa6bd;--oro:#c9a44c;--error:#e8897a}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body:not(.admin) .adm{display:none!important}
+body{margin:0;background:var(--fondo);color:var(--texto);font:16px/1.5 system-ui,sans-serif}
+h1,h2,h3{font-family:Georgia,serif;font-weight:600;margin:0}
+input,select,textarea{width:100%;padding:8px 10px;background:#0c1422;border:1px solid var(--linea);border-radius:6px;color:var(--texto);font:inherit}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--oro);outline-offset:1px}
+label{display:block;font-size:14px;color:var(--tenue);margin-bottom:12px}
+label input,label select,label textarea{margin-top:4px;color:var(--texto)}
+.btn{background:var(--oro);color:#1a1405;border:0;border-radius:6px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+.btn.sec{background:transparent;color:var(--texto);border:1px solid var(--linea);font-weight:400}
+.btn.mini{padding:3px 9px;font-size:13px}
+.err{color:var(--error);min-height:1.4em;margin:8px 0 0}
+#login{min-height:100vh;display:grid;place-items:center;padding:20px}
+#f-login{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--linea);border-radius:10px;padding:28px}
+#f-login h1{font-size:24px;line-height:1.25;margin-bottom:4px}
+#f-login>p{color:var(--tenue);margin:0 0 18px}
+#portada img{display:block;max-width:100%;max-height:200px;margin:0 auto 18px;border-radius:8px}
+#f-login .btn{width:100%;margin-top:4px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--linea)}
+header strong{font:600 18px Georgia,serif;display:block}
+header small{color:var(--tenue)}
+nav{display:flex;gap:4px;padding:0 20px;border-bottom:1px solid var(--linea);overflow-x:auto}
+nav button{background:none;border:0;border-bottom:3px solid transparent;color:var(--tenue);padding:12px 16px;font:inherit;cursor:pointer;white-space:nowrap}
+nav button.on{color:var(--oro);border-color:var(--oro)}
+main{padding:20px;max-width:1500px;margin:0 auto}
+.card{background:var(--panel);border:1px solid var(--linea);border-radius:8px;padding:16px 18px;margin-bottom:14px}
+.card.fijo{border-left:4px solid var(--oro)}
+.card h3{font-size:20px}
+.card p{white-space:pre-wrap;margin:8px 0}
+.card small{color:var(--tenue)}
+.pin{color:var(--oro);margin-left:8px}
+.acc{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.vacio{color:var(--tenue)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.bar input{flex:1;min-width:200px}
+.bar select{width:auto}
+.bar span{color:var(--tenue);font-size:14px}
+.scroll{overflow-x:auto;border:1px solid var(--linea);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--linea);white-space:nowrap}
+td.l{white-space:normal;min-width:220px}
+th{background:var(--panel);color:var(--oro);font-weight:600;position:sticky;top:0}
+tbody tr:hover{background:#15213a}
+#modal{position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:16px;z-index:5}
+#f-miembro{background:var(--panel);border:1px solid var(--linea);border-radius:10px;padding:22px;width:100%;max-width:640px;max-height:92vh;overflow:auto}
+#f-campos{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;margin-top:14px}
+#f-campos label:last-child{grid-column:1/-1}
+@media(max-width:560px){#f-campos{grid-template-columns:1fr}}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--oro);color:#1a1405;padding:9px 18px;border-radius:6px;font-weight:600;z-index:9}
+</style>
+</head>
+<body>
+
+<section id="login">
+  <form id="f-login">
+    <div id="portada"></div>
+    <h1>R. y M. Logia “Hermanos del Mundo”</h1>
+    <p>Inicia sesión para continuar.</p>
+    <label>Correo<input id="l-mail" type="email" autocomplete="username" required></label>
+    <label>Contraseña<input id="l-pass" type="password" autocomplete="current-password" required></label>
+    <button class="btn" id="l-btn">Entrar</button>
+    <p class="err" id="l-err" role="alert"></p>
+  </form>
+</section>
+
+<div id="app" hidden>
+  <header>
+    <div><strong>R. y M. Logia “Hermanos del Mundo”</strong><small id="quien"></small></div>
+    <button class="btn sec" id="salir">Cerrar sesión</button>
+  </header>
+  <nav id="nav">
+    <button data-t="avisos" class="on">Avisos</button>
+    <button data-t="miembros">Miembros</button>
+  </nav>
+  <main>
+    <section id="t-avisos">
+      <form id="f-aviso" class="card adm">
+        <label>Título<input id="a-titulo" required></label>
+        <label>Texto<textarea id="a-texto" rows="3"></textarea></label>
+        <label style="display:flex;gap:8px;align-items:center"><input id="a-fijo" type="checkbox" style="width:auto;margin:0"> Fijar arriba</label>
+        <button class="btn">Publicar aviso</button>
+      </form>
+      <div id="lista-avisos"></div>
+    </section>
+
+    <section id="t-miembros" hidden>
+      <div class="bar">
+        <input id="q" type="search" placeholder="Buscar por nombres o apellidos…">
+        <select id="ord" aria-label="Ordenar por"><option value="num">Orden por número</option><option value="ap">Orden por apellidos</option></select>
+        <span id="cuenta"></span>
+        <button class="btn adm" id="nuevo">Nuevo miembro</button>
+      </div>
+      <div class="scroll"><table><thead><tr id="th"></tr></thead><tbody id="tb"></tbody></table></div>
+    </section>
+  </main>
+</div>
+
+<div id="modal" hidden>
+  <form id="f-miembro">
+    <h2 id="f-titulo">Nuevo miembro</h2>
+    <div id="f-campos"></div>
+    <p class="err" id="f-err" role="alert"></p>
+    <div class="acc"><button class="btn">Guardar</button><button type="button" class="btn sec" id="cancelar">Cancelar</button></div>
+  </form>
+</div>
+<div id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const sb = supabase.createClient('https://glinbmajqeclisjtozfq.supabase.co', 'sb_publishable_bMQIeS6etj_0yRjGm_UmNg_pVNUXBv1');
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const fmt = f => f ? f.split('-').reverse().join('/') : '';
+const edad = f => {
+  if (!f) return '';
+  const [y, m, d] = f.split('-').map(Number), h = new Date();
+  let e = h.getFullYear() - y;
+  if (h.getMonth() + 1 < m || (h.getMonth() + 1 === m && h.getDate() < d)) e--;
+  return e;
+};
+let rol = null, miembros = [], editId = null, tt;
+
+const GRADOS = ['Aprendiz', 'Compañero', 'Maestro'];
+const CARGOS = ['VM','1°Vig','2°Vig','Sec','Sec.Adj','Tes','Tes.Adj','Rep','Ora','MC','1°D','2°D','Hosp','GT.Int','GT.Ext','Exp1','Exp2','C.Hac','Voc1','Voc2'];
+// [columna, etiqueta, tipo, obligatorio]
+const CAMPOS = [
+  ['nombres','Nombres','text',1], ['apellidos','Apellidos','text',1],
+  ['fecha_nacimiento','F. nacimiento','date'], ['ci','CI','text'],
+  ['grado','Grado','sel',1], ['cargo','Cargo','sel'],
+  ['fecha_iniciacion','F. iniciación','date'], ['fecha_afiliacion','F. afiliación','date'],
+  ['fecha_ascenso','F. ascenso','date'], ['fecha_exaltacion','F. exaltación','date'],
+  ['telefono','Teléfono','text'], ['direccion','Dirección','text'],
+  ['observaciones','Observaciones','area']
+];
+
+function toast(t) {
+  const el = $('toast'); el.textContent = t; el.hidden = false;
+  clearTimeout(tt); tt = setTimeout(() => el.hidden = true, 3000);
+}
+
+/* ---------- Acceso ---------- */
+async function entrar(session) {
+  const { data } = await sb.from('perfiles').select('rol,nombre').eq('id', session.user.id).maybeSingle();
+  if (!data) {
+    await sb.auth.signOut();
+    $('l-err').textContent = 'Esta cuenta no tiene un rol asignado. Avisa a un administrador.';
+    return;
+  }
+  rol = data.rol;
+  document.body.classList.toggle('admin', rol === 'admin');
+  $('quien').textContent = (rol === 'admin' ? 'Administrador: ' : 'Miembro: ') + (data.nombre || session.user.email);
+  $('login').hidden = true; $('app').hidden = false;
+  await Promise.all([cargarAvisos(), cargarMiembros()]);
+}
+
+$('f-login').onsubmit = async e => {
+  e.preventDefault();
+  $('l-err').textContent = ''; $('l-btn').disabled = true;
+  const { data, error } = await sb.auth.signInWithPassword({ email: $('l-mail').value.trim(), password: $('l-pass').value });
+  $('l-btn').disabled = false;
+  if (error) { $('l-err').textContent = 'Correo o contraseña incorrectos.'; return; }
+  await entrar(data.session);
+};
+$('salir').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+$('nav').onclick = e => {
+  const t = e.target.dataset.t; if (!t) return;
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b === e.target));
+  $('t-avisos').hidden = t !== 'avisos'; $('t-miembros').hidden = t !== 'miembros';
+};
+
+/* ---------- Avisos ---------- */
+async function cargarAvisos() {
+  const { data, error } = await sb.from('avisos').select('*').eq('archivado', false)
+    .order('fijado', { ascending: false }).order('fecha', { ascending: false }).order('created_at', { ascending: false });
+  if (error) { $('lista-avisos').innerHTML = `<p class="err">${esc(error.message)}</p>`; return; }
+  $('lista-avisos').innerHTML = data.length ? data.map(a => `
+    <article class="card${a.fijado ? ' fijo' : ''}">
+      <h3>${esc(a.titulo)}${a.fijado ? '<span class="pin">Fijado</span>' : ''}</h3>
+      <small>${fmt(a.fecha)}</small>
+      <p>${esc(a.texto)}</p>
+      <div class="acc adm">
+        <button class="btn sec mini" data-a="fijar" data-id="${a.id}" data-v="${a.fijado}">${a.fijado ? 'Quitar fijado' : 'Fijar'}</button>
+        <button class="btn sec mini" data-a="archivar" data-id="${a.id}">Archivar</button>
+        <button class="btn sec mini" data-a="borrar" data-id="${a.id}">Eliminar</button>
+      </div>
+    </article>`).join('') : '<p class="vacio">Todavía no hay avisos publicados.</p>';
+}
+$('f-aviso').onsubmit = async e => {
+  e.preventDefault();
+  const { error } = await sb.from('avisos').insert({ titulo: $('a-titulo').value.trim(), texto: $('a-texto').value.trim() || null, fijado: $('a-fijo').checked });
+  if (error) return toast('No se pudo publicar: ' + error.message);
+  e.target.reset(); toast('Aviso publicado.'); cargarAvisos();
+};
+$('lista-avisos').onclick = async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const { a, id, v } = b.dataset; let r;
+  if (a === 'fijar') r = await sb.from('avisos').update({ fijado: v !== 'true' }).eq('id', id);
+  if (a === 'archivar') r = await sb.from('avisos').update({ archivado: true }).eq('id', id);
+  if (a === 'borrar') { if (!confirm('¿Eliminar este aviso definitivamente?')) return; r = await sb.from('avisos').delete().eq('id', id); }
+  if (r?.error) return toast('Error: ' + r.error.message);
+  cargarAvisos();
+};
+
+/* ---------- Miembros ---------- */
+async function cargarMiembros() {
+  const { data, error } = await sb.from('miembros').select('*');
+  if (error) { toast('Error al cargar miembros: ' + error.message); return; }
+  miembros = data; renderMiembros();
+}
+const clave = m => (m.fecha_afiliacion || m.fecha_iniciacion || '9999-12-31') + '_' + (m.fecha_nacimiento || '9999-12-31');
+
+function renderMiembros() {
+  const orden = [...miembros].sort((a, b) => clave(a).localeCompare(clave(b)));
+  const N = {}; orden.forEach((m, i) => N[m.id] = i + 1);   // el # siempre es el de antigüedad
+  const q = norm($('q').value);
+  const l = miembros.filter(m => norm(m.nombres + ' ' + m.apellidos).includes(q));
+  l.sort($('ord').value === 'ap'
+    ? (a, b) => a.apellidos.localeCompare(b.apellidos, 'es') || a.nombres.localeCompare(b.nombres, 'es')
+    : (a, b) => N[a.id] - N[b.id]);
+  $('cuenta').textContent = l.length + ' de ' + miembros.length;
+  const cab = ['#'];
+  CAMPOS.forEach(c => { cab.push(c[1]); if (c[0] === 'fecha_nacimiento') cab.push('Edad'); });
+  $('th').innerHTML = cab.map(h => `<th>${h}</th>`).join('') + '<th class="adm"></th>';
+  $('tb').innerHTML = l.map(m => {
+    let f = `<td>${N[m.id]}</td>`;
+    CAMPOS.forEach(([k, , t]) => {
+      const v = m[k];
+      f += `<td${k === 'direccion' || k === 'observaciones' ? ' class="l"' : ''}>${t === 'date' ? fmt(v) : k === 'apellidos' ? `<strong>${esc(v)}</strong>` : esc(v)}</td>`;
+      if (k === 'fecha_nacimiento') f += `<td>${edad(v)}</td>`;
+    });
+    return `<tr>${f}<td class="adm"><button class="btn sec mini" data-e="${m.id}">Editar</button> <button class="btn sec mini" data-d="${m.id}">Eliminar</button></td></tr>`;
+  }).join('');
+}
+$('q').oninput = $('ord').onchange = renderMiembros;
+$('nuevo').onclick = () => abrirForm(null);
+$('tb').onclick = async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.e) return abrirForm(miembros.find(m => m.id === b.dataset.e));
+  if (b.dataset.d) {
+    const m = miembros.find(x => x.id === b.dataset.d);
+    if (!confirm(`¿Eliminar a ${m.nombres} ${m.apellidos}? Se borrarán también su asistencia y sus cuotas.`)) return;
+    const { error } = await sb.from('miembros').delete().eq('id', m.id);
+    if (error) return toast('Error: ' + error.message);
+    toast('Miembro eliminado.'); cargarMiembros();
+  }
+};
+
+function abrirForm(m) {
+  editId = m ? m.id : null;
+  $('f-titulo').textContent = m ? 'Editar miembro' : 'Nuevo miembro';
+  $('f-err').textContent = '';
+  $('f-campos').innerHTML = CAMPOS.map(([k, l, t, req]) => {
+    const v = m ? (m[k] ?? '') : '';
+    let inp;
+    if (t === 'sel') {
+      const ops = k === 'grado' ? GRADOS : CARGOS, lista = v && !ops.includes(v) ? [...ops, v] : ops;
+      inp = `<select name="${k}"><option value="">${k === 'grado' ? 'Seleccionar' : 'Sin cargo'}</option>${lista.map(o => `<option${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+    } else if (t === 'area') inp = `<textarea name="${k}" rows="3">${esc(v)}</textarea>`;
+    else inp = `<input name="${k}" type="${t}" value="${esc(v)}"${k === 'ci' ? ' maxlength="11" inputmode="numeric"' : ''}>`;
+    return `<label>${l}${req ? ' *' : ''}${inp}</label>`;
+  }).join('');
+  $('modal').hidden = false;
+}
+$('cancelar').onclick = () => $('modal').hidden = true;
+$('f-miembro').onsubmit = async e => {
+  e.preventDefault();
+  const f = new FormData(e.target), r = {};
+  CAMPOS.forEach(([k]) => r[k] = (f.get(k) || '').trim() || null);
+  const err = t => $('f-err').textContent = t;
+  if (!r.nombres || !r.apellidos || !r.grado) return err('Nombres, apellidos y grado son obligatorios.');
+  if (r.ci && !/^\d{11}$/.test(r.ci)) return err('El CI debe tener exactamente 11 dígitos.');
+  const { error } = editId ? await sb.from('miembros').update(r).eq('id', editId) : await sb.from('miembros').insert(r);
+  if (error) return err(error.code === '23505' ? 'Ese CI ya está registrado en otro miembro.' : 'No se pudo guardar: ' + error.message);
+  $('modal').hidden = true; toast(editId ? 'Miembro actualizado.' : 'Miembro registrado.'); cargarMiembros();
+};
+
+/* ---------- Inicio ---------- */
+(async () => {
+  const { data: c } = await sb.from('config').select('valor').eq('clave', 'portada_url').maybeSingle();
+  if (c && /^https:\/\//.test(c.valor || '')) $('portada').innerHTML = `<img src="${esc(c.valor)}" alt="Imagen de la logia">`;
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await entrar(session);
+})();
+</script>
+</body>
+</html>
