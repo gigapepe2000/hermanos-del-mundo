@@ -44,12 +44,14 @@ main{padding:20px;max-width:1500px;margin:0 auto}
 .bar input{flex:1;min-width:200px}
 .bar select{width:auto}
 .bar span{color:var(--tenue);font-size:14px}
-.scroll{overflow-x:auto;border:1px solid var(--linea);border-radius:8px}
+.scroll{overflow:auto;max-height:calc(100vh - 230px);min-height:260px;border:1px solid var(--linea);border-radius:8px}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--linea);white-space:nowrap}
 td.l{white-space:normal;min-width:220px}
-th{background:var(--panel);color:var(--oro);font-weight:600;position:sticky;top:0}
-tbody tr:hover{background:#15213a}
+th{background:var(--panel);color:var(--oro);font-weight:600;position:sticky;top:0;z-index:2}
+td:first-child,th:first-child{position:sticky;left:0;background:var(--panel);box-shadow:inset -1px 0 0 var(--linea)}
+td:first-child{z-index:1}th:first-child{z-index:3}
+tbody tr:hover,tbody tr:hover td:first-child{background:#15213a}
 .c{text-align:center;cursor:default;user-select:none}
 body.admin td.c{cursor:pointer}
 td.ok{color:#7fd19a;font-weight:600}td.mal{color:var(--error);font-weight:600}
@@ -201,7 +203,7 @@ async function entrar(session) {
   }
   rol = data.rol;
   document.body.classList.toggle('admin', rol === 'admin');
-  $('quien').textContent = (rol === 'admin' ? 'Administrador: ' : 'Miembro: ') + (data.nombre || session.user.email);
+  $('quien').textContent = (rol === 'admin' ? 'Administrador: ' : 'Usuario: ') + (data.nombre || session.user.email);
   $('login').hidden = true; $('app').hidden = false;
   await Promise.all([cargarAvisos(), cargarMiembros()]);
   cargarAC();
