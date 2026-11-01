@@ -1,7 +1,5 @@
 name: Mantener activo Supabase
 
-# Hace una consulta ligera a la base de datos cada 3 días para que
-# Supabase (plan gratuito) no pause el proyecto por inactividad.
 on:
   schedule:
     - cron: '17 6 */3 * *'
@@ -14,4 +12,5 @@ jobs:
       - name: Consulta ligera a la tabla config
         run: |
           curl -fsS "https://glinbmajqeclisjtozfq.supabase.co/rest/v1/config?select=clave&limit=1" \
-            -H "apikey: sb_publishable_bMQIeS6etj_0yRjGm_UmNg_pVNUXBv1"
+            -H "apikey: sb_publishable_bMQIeS6etj_0yRjGm_UmNg_pVNUXBv1" \
+            -H "Authorization: Bearer sb_publishable_bMQIeS6etj_0yRjGm_UmNg_pVNUXBv1"
