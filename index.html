@@ -8,7 +8,7 @@
 :root{--fondo:#101826;--panel:#17233a;--linea:#2b3a57;--texto:#e8e4d8;--tenue:#9aa6bd;--oro:#c9a44c;--error:#e8897a}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body:not(.admin) .adm{display:none!important}
+body:not(.p-avisos) .w-avisos,body:not(.p-miembros) .w-miembros,body:not(.p-asistencia) .w-asistencia,body:not(.p-cuotas) .w-cuotas,body:not(.p-fondos) .w-fondos,body:not(.oficial) .of,body:not(.super) .sup{display:none!important}
 body{margin:0;background:var(--fondo);color:var(--texto);font:16px/1.5 system-ui,sans-serif}
 h1,h2,h3{font-family:Georgia,serif;font-weight:600;margin:0}
 input,select,textarea{width:100%;padding:8px 10px;background:#0c1422;border:1px solid var(--linea);border-radius:6px;color:var(--texto);font:inherit}
@@ -53,7 +53,7 @@ td:first-child,th:first-child{position:sticky;left:0;background:var(--panel);box
 td:first-child{z-index:1}th:first-child{z-index:3}
 tbody tr:hover,tbody tr:hover td:first-child{background:#15213a}
 .c{text-align:center;cursor:default;user-select:none}
-body.admin td.c{cursor:pointer}
+body.p-asistencia #as-tb td.c,body.p-cuotas #cu-tb td.c{cursor:pointer}
 td.ok{color:#7fd19a;font-weight:600}td.mal{color:var(--error);font-weight:600}
 th .acc{margin:4px 0 0;gap:3px;flex-wrap:nowrap}
 nav select{margin:auto 0 auto auto;width:auto}
@@ -86,7 +86,7 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
   th{background:#e8e8e8!important;color:#000}
   table{font-size:9px}thead{display:table-header-group}tr{break-inside:avoid}
   td.ok{color:#060}td.mal{color:#a00}.card{break-inside:avoid}
-  #fx.adm{display:block!important}body.sin-fx #fx.adm{display:none!important}
+  body.sin-fx #fx{display:none!important}
 }
 </style>
 </head>
@@ -108,7 +108,7 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
 <div id="app" hidden>
   <header>
     <div><strong>R. y M. Logia “Hermanos del Mundo”</strong><small id="quien"></small></div>
-    <div class="acc" style="margin:0"><label class="btn sec adm">Cambiar portada<input id="portada-f" type="file" accept="image/*" hidden></label><button class="btn sec adm" id="cambiar-clave">Cambiar contraseña</button><button class="btn sec adm" id="imprimir" hidden>Imprimir</button><button class="btn sec" id="salir">Cerrar sesión</button></div>
+    <div class="acc" style="margin:0"><label class="btn sec adm w-avisos">Cambiar portada<input id="portada-f" type="file" accept="image/*" hidden></label><button class="btn sec adm of" id="cambiar-clave">Cambiar contraseña</button><button class="btn sec adm of" id="imprimir" hidden>Imprimir</button><button class="btn sec" id="salir">Cerrar sesión</button></div>
   </header>
   <nav id="nav">
     <button data-t="avisos" class="on">Avisos</button>
@@ -118,13 +118,14 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
     <button data-t="asistencia">Asistencia</button>
     <button data-t="cuotas">Cuotas</button>
     <button data-t="fondos">Fondos</button>
+    <button data-t="usuarios" class="sup">Usuarios</button>
     <select id="anio" aria-label="Año" hidden></select>
   </nav>
   <main>
     <div id="p-cab" class="solo-imp"><h1 style="font-size:18px">R. y M. Logia “Hermanos del Mundo”</h1><h2 id="p-t" style="margin:4px 0;font-size:15px"></h2><p id="p-f" style="margin:2px 0"></p><p id="p-d" style="margin:2px 0;color:#444"></p></div>
     <div id="franja" class="card" hidden><strong id="fr-n"></strong> miembros coinciden con los filtros. <button class="btn sec mini" id="fr-x">Limpiar filtros</button></div>
     <section id="t-avisos">
-      <form id="f-aviso" class="card adm">
+      <form id="f-aviso" class="card adm w-avisos">
         <label>Título<input id="a-titulo" required></label>
         <label>Texto<textarea id="a-texto" rows="3"></textarea></label>
         <label>Imagen (opcional)<input id="a-img" type="file" accept="image/*"></label>
@@ -139,7 +140,7 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
       <div class="bar">
         <input id="q" type="search" placeholder="Buscar por nombres o apellidos…">
         <span id="cuenta"></span>
-        <button class="btn adm" id="nuevo">Nuevo miembro</button>
+        <button class="btn adm w-miembros" id="nuevo">Nuevo miembro</button>
       </div>
       <div class="scroll"><table><thead><tr id="th"></tr></thead><tbody id="tb"></tbody></table></div>
     </section>
@@ -150,20 +151,34 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
 
     <section id="t-estadisticas" hidden>
       <div class="grid" id="st"></div>
-      <div class="acc adm"><button class="btn sec" id="resp">Descargar respaldo completo</button></div>
+      <div class="acc adm of"><button class="btn sec" id="resp">Descargar respaldo completo</button></div>
     </section>
 
-    <section id="t-fondos" hidden><label class="chk adm" style="margin-bottom:6px"><input id="imp-fx" type="checkbox">Incluir el fondo extra al imprimir</label><div id="fo"></div><div id="fx" class="adm"></div></section>
+    <section id="t-fondos" hidden><label class="chk adm of" style="margin-bottom:6px"><input id="imp-fx" type="checkbox">Incluir el fondo extra al imprimir</label><div id="fo"></div><div id="fx" class="of"></div></section>
+
+    <section id="t-usuarios" hidden>
+      <form id="f-usuario" class="card">
+        <h3 style="margin-bottom:10px">Crear usuario</h3>
+        <div class="grid">
+          <label>Correo<input id="u-mail" type="email" required></label>
+          <label>Nombre que se muestra<input id="u-nom" required placeholder="Ej.: Tesorero"></label>
+          <label>Rol<select id="u-rol"></select></label>
+          <label>Contraseña inicial<span class="rg"><input id="u-pass" minlength="10" required><button type="button" class="btn sec mini" id="u-gen">Generar</button></span></label>
+        </div>
+        <button class="btn">Crear usuario</button>
+      </form>
+      <div class="scroll"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Acciones</th></tr></thead><tbody id="u-tb"></tbody></table></div>
+    </section>
 
     <section id="t-asistencia" hidden>
-      <div class="bar adm"><input id="ses-fecha" type="date" style="flex:0 0 auto;min-width:0;width:auto"><button class="btn" id="nueva-ses">Añadir sesión</button></div>
+      <div class="bar adm w-asistencia"><input id="ses-fecha" type="date" style="flex:0 0 auto;min-width:0;width:auto"><button class="btn" id="nueva-ses">Añadir sesión</button></div>
       <div class="scroll"><table><thead><tr id="as-th"></tr></thead><tbody id="as-tb"></tbody></table></div>
       <p class="vacio" id="as-vacio" hidden>No hay sesiones registradas en este año.</p>
       <p class="vacio">✅ asistió, ⬜ ausente, ➖ justificada (no cuenta en el porcentaje).</p>
     </section>
 
     <section id="t-cuotas" hidden>
-      <div class="bar adm"><button class="btn" id="nueva-extra">Añadir columna</button></div>
+      <div class="bar adm w-cuotas"><button class="btn" id="nueva-extra">Añadir columna</button></div>
       <div class="scroll"><table><thead><tr id="cu-th"></tr></thead><tbody id="cu-tb"></tbody></table></div>
       <p class="vacio">✅ pagada, 🆓 exonerada, ⬜ pendiente. El balance cuenta los meses pagados menos los transcurridos del año.</p>
     </section>
@@ -191,6 +206,7 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
+const FN = 'bright-endpoint';   // nombre de la función del servidor (ver Edge Functions en Supabase)
 const REC = /type=recovery/.test(location.hash);   // llegó desde el enlace de recuperación
 const sb = supabase.createClient('https://glinbmajqeclisjtozfq.supabase.co', 'sb_publishable_bMQIeS6etj_0yRjGm_UmNg_pVNUXBv1');
 const $ = id => document.getElementById(id);
@@ -205,6 +221,11 @@ const edad = f => {
   return e;
 };
 let rol = null, miembros = [], editId = null, tt;
+// Quién puede escribir en cada zona (la base de datos lo impone; esto solo muestra u oculta controles)
+const PERM = { venerable: ['avisos'], secretario: ['avisos','miembros','asistencia'], tesorero: ['avisos','cuotas','fondos'],
+               super: ['avisos','miembros','asistencia','cuotas','fondos'], miembro: [] };
+const puede = a => (PERM[rol] || []).includes(a);
+const ETQ = { venerable: 'Venerable Maestro', secretario: 'Secretario', tesorero: 'Tesorero', super: 'Súper administrador', miembro: 'Usuario' };
 
 const GRADOS = ['Aprendiz', 'Compañero', 'Maestro'];
 const CARGOS = ['VM','1°Vig','2°Vig','Sec','Sec.Adj','Tes','Tes.Adj','Rep','Ora','MC','1°D','2°D','Hosp','GT.Int','GT.Ext','Exp1','Exp2','C.Hac','Voc1','Voc2'];
@@ -233,8 +254,11 @@ async function entrar(session) {
     return;
   }
   rol = data.rol;
-  document.body.classList.toggle('admin', rol === 'admin');
-  $('quien').textContent = (rol === 'admin' ? 'Administrador: ' : 'Usuario: ') + (data.nombre || session.user.email);
+  document.body.classList.toggle('oficial', rol !== 'miembro');
+  ['avisos','miembros','asistencia','cuotas','fondos'].forEach(a => document.body.classList.toggle('p-' + a, puede(a)));
+  YO = session.user.id; document.body.classList.toggle('super', rol === 'super');
+  const L = ETQ[rol] || rol;
+  $('quien').textContent = norm(data.nombre) === norm(L) ? L : L + ': ' + (data.nombre || session.user.email);
   $('login').hidden = true; $('app').hidden = false;
   await Promise.all([cargarAvisos(), cargarMiembros()]);
   cargarAC();
@@ -252,8 +276,9 @@ $('salir').onclick = async () => { await sb.auth.signOut(); location.reload(); }
 $('nav').onclick = e => {
   const t = e.target.dataset.t; if (!t) return;
   TAB = t; $('imprimir').hidden = !IMP.includes(t);
+  if (t === 'usuarios') cargarUsuarios();
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b === e.target));
-  ['avisos','miembros','busqueda','estadisticas','asistencia','cuotas','fondos'].forEach(x => $('t-' + x).hidden = x !== t);
+  ['avisos','miembros','busqueda','estadisticas','asistencia','cuotas','fondos','usuarios'].forEach(x => $('t-' + x).hidden = x !== t);
   $('anio').hidden = !['asistencia','cuotas','fondos'].includes(t);
 };
 
@@ -270,7 +295,7 @@ async function cargarAvisos() {
       <small>${fmt(a.fecha)}</small>
       ${U[a.imagen_path] ? `<img src="${esc(U[a.imagen_path])}" alt="Imagen del aviso">` : ''}
       <p>${esc(a.texto)}</p>
-      <div class="acc adm">
+      <div class="acc adm w-avisos">
         <button class="btn sec mini" data-a="fijar" data-id="${a.id}" data-v="${a.fijado}">${a.fijado ? 'Quitar fijado' : 'Fijar'}</button>
         <button class="btn sec mini" data-a="archivar" data-id="${a.id}" data-ar="${a.archivado}">${a.archivado ? 'Restaurar' : 'Archivar'}</button>
         <button class="btn sec mini" data-a="borrar" data-id="${a.id}" data-p="${esc(a.imagen_path || '')}">Eliminar</button>
@@ -315,7 +340,7 @@ function renderMiembros() {
   $('cuenta').textContent = l.length + ' de ' + miembros.length;
   const cab = ['#'];
   CAMPOS.forEach(c => { cab.push(c[1]); if (c[0] === 'fecha_nacimiento') cab.push('Edad'); });
-  $('th').innerHTML = cab.map(h => `<th>${h}</th>`).join('') + '<th class="adm"></th>';
+  $('th').innerHTML = cab.map(h => `<th>${h}</th>`).join('') + '<th class="adm w-miembros"></th>';
   $('tb').innerHTML = l.map(m => {
     let f = `<td>${N[m.id]}</td>`;
     CAMPOS.forEach(([k, , t]) => {
@@ -323,7 +348,7 @@ function renderMiembros() {
       f += `<td${k === 'direccion' || k === 'observaciones' ? ' class="l"' : ''}>${t === 'date' ? fmt(v) : k === 'apellidos' ? `<strong>${esc(v)}</strong>` : esc(v)}</td>`;
       if (k === 'fecha_nacimiento') f += `<td>${edad(v)}</td>`;
     });
-    return `<tr>${f}<td class="adm"><button class="btn sec mini" data-e="${m.id}">Editar</button> <button class="btn sec mini" data-d="${m.id}">Eliminar</button></td></tr>`;
+    return `<tr>${f}<td class="adm w-miembros"><button class="btn sec mini" data-e="${m.id}">Editar</button> <button class="btn sec mini" data-d="${m.id}">Eliminar</button></td></tr>`;
   }).join('');
 }
 $('q').oninput = renderMiembros;
@@ -417,13 +442,13 @@ function poblarAnios() {
 }
 $('anio').onchange = () => { renderAs(); renderCu(); renderFon(); };
 const nom = (m, i) => `<td>${NUM[m.id]}</td><td>${esc(m.nombres)}</td><td><strong>${esc(m.apellidos)}</strong></td>`;
-const btns = (e, d) => `<span class="adm acc"><button class="btn sec mini" data-e="${e}" title="Editar">✏</button><button class="btn sec mini" data-d="${d}" title="Eliminar">✕</button></span>`;
+const btns = (e, d, w) => `<span class="adm acc w-${w}"><button class="btn sec mini" data-e="${e}" title="Editar">✏</button><button class="btn sec mini" data-d="${d}" title="Eliminar">✕</button></span>`;
 
 function renderAs() {
   const ses = SES.filter(s => s.fecha.startsWith($('anio').value));
   $('as-vacio').hidden = ses.length > 0;
   $('as-th').innerHTML = '<th>#</th><th>Nombres</th><th>Apellidos</th><th>%</th><th>Aus.<br>consec.</th>' +
-    ses.map(s => `<th>${+s.fecha.slice(8)}${MES[+s.fecha.slice(5, 7) - 1]}${btns(s.id, s.id)}</th>`).join('');
+    ses.map(s => `<th>${+s.fecha.slice(8)}${MES[+s.fecha.slice(5, 7) - 1]}${btns(s.id, s.id, 'asistencia')}</th>`).join('');
   $('as-tb').innerHTML = ordenN().map((m, i) => {
     const mk = ses.map(s => AS[m.id + '|' + s.id] || 0);
     const ok = mk.filter(v => v === 1).length, den = ses.length - mk.filter(v => v === 2).length;
@@ -434,7 +459,7 @@ function renderAs() {
   }).join('');
 }
 $('as-tb').onclick = async e => {
-  const td = e.target.closest('td.c'); if (!td || rol !== 'admin') return;
+  const td = e.target.closest('td.c'); if (!td || !puede('asistencia')) return;
   const k = td.dataset.m + '|' + td.dataset.s, v = ((AS[k] || 0) + 1) % 3;
   const r = v ? await sb.from('asistencia').upsert({ sesion_id: td.dataset.s, miembro_id: td.dataset.m, marca: v })
               : await sb.from('asistencia').delete().eq('sesion_id', td.dataset.s).eq('miembro_id', td.dataset.m);
@@ -465,7 +490,7 @@ function renderCu() {
   const y = +$('anio').value, hoy = new Date(), ex = EX.filter(x => x.anio === y);
   const ref = y < hoy.getFullYear() ? 12 : y > hoy.getFullYear() ? 0 : hoy.getMonth() + 1;
   $('cu-th').innerHTML = '<th>#</th><th>Nombres</th><th>Apellidos</th><th>Balance</th>' + MES.map(m => `<th>${m}</th>`).join('') +
-    ex.map(x => `<th>${esc(x.titulo)}${btns(x.id, x.id)}</th>`).join('');
+    ex.map(x => `<th>${esc(x.titulo)}${btns(x.id, x.id, 'cuotas')}</th>`).join('');
   $('cu-tb').innerHTML = ordenN().map((m, i) => {
     let p = 0, x2 = 0;
     for (let k = 1; k <= 12; k++) { const v = CU[m.id + '|' + y + '|' + k] || 0; if (v === 1) p++; if (v === 2 && k <= ref) x2++; }
@@ -476,7 +501,7 @@ function renderCu() {
   }).join('');
 }
 $('cu-tb').onclick = async e => {
-  const td = e.target.closest('td.c'); if (!td || rol !== 'admin') return;
+  const td = e.target.closest('td.c'); if (!td || !puede('cuotas')) return;
   const y = +$('anio').value, m = td.dataset.m; let r, k, v;
   if (td.dataset.x) {
     k = td.dataset.x + '|' + m; v = ((EM[k] || 0) + 1) % 3;
@@ -635,12 +660,12 @@ $('resp').onclick = async () => {
 /* ---------- Fondos ---------- */
 const FON = [
   { t: 'fondos', el: 'fo', tit: 'Fondos', cols: [['fondo_general','Fondo general'],['fondo_benefico','Fondo benéfico'],['fondo_total','Fondo total',1],['saldo_banco','Saldo en banco'],['efectivo_caja','Efectivo en caja'],['total_banco_caja','Total banco + caja',1],['diferencia','Diferencia',1]] },
-  { t: 'fondo_extra', el: 'fx', tit: 'Fondo extra (solo administradores)', cols: [['cup','CUP'],['usd','USD'],['eur','EUR']] }];
+  { t: 'fondo_extra', el: 'fx', tit: 'Fondo extra (no visible para miembros)', cols: [['cup','CUP'],['usd','USD'],['eur','EUR']] }];
 let FD = { fondos: [], fondo_extra: [] };
 const nf = v => Number(v).toLocaleString('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 FON.forEach(c => {
   const el = $(c.el), ed = c.cols.filter(x => !x[2]);
-  el.innerHTML = `<h2>${c.tit}</h2><form class="bar adm"><select name="mes" aria-label="Mes de cierre">${MES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('')}</select>${ed.map(x => `<input name="${x[0]}" type="number" step="0.01" placeholder="${x[1]}" aria-label="${x[1]}" style="min-width:120px">`).join('')}<button class="btn">Guardar cierre</button></form><div class="scroll"><table><thead><tr><th>Mes</th>${c.cols.map(x => `<th>${x[1]}</th>`).join('')}<th class="adm"></th></tr></thead><tbody></tbody></table></div>`;
+  el.innerHTML = `<h2>${c.tit}</h2><form class="bar adm w-fondos"><select name="mes" aria-label="Mes de cierre">${MES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('')}</select>${ed.map(x => `<input name="${x[0]}" type="number" step="0.01" placeholder="${x[1]}" aria-label="${x[1]}" style="min-width:120px">`).join('')}<button class="btn">Guardar cierre</button></form><div class="scroll"><table><thead><tr><th>Mes</th>${c.cols.map(x => `<th>${x[1]}</th>`).join('')}<th class="adm w-fondos"></th></tr></thead><tbody></tbody></table></div>`;
   el.querySelector('form').onsubmit = async e => {
     e.preventDefault();
     const f = new FormData(e.target), r = { anio: +$('anio').value, mes: +f.get('mes') };
@@ -663,7 +688,7 @@ FON.forEach(c => {
 });
 async function cargarFon() {
   for (const c of FON) {
-    if (c.t === 'fondo_extra' && rol !== 'admin') continue;
+    if (c.t === 'fondo_extra' && rol === 'miembro') continue;
     try { FD[c.t] = await todo(() => sb.from(c.t).select('*').order('anio').order('mes')); }
     catch (err) { toast('Error en ' + c.tit + ': ' + err.message); }
   }
@@ -674,7 +699,7 @@ function renderFon() {
   FON.forEach(c => {
     $(c.el).querySelector('tbody').innerHTML = FD[c.t].filter(r => r.anio === y).map(r =>
       `<tr><td>${MES[r.mes - 1]}</td>` + c.cols.map(([k]) => `<td class="${k === 'diferencia' && +r[k] !== 0 ? 'mal' : ''}">${nf(r[k])}</td>`).join('') +
-      `<td class="adm"><button class="btn sec mini" data-e="${r.id}">✏</button> <button class="btn sec mini" data-d="${r.id}">✕</button></td></tr>`).join('')
+      `<td class="adm w-fondos"><button class="btn sec mini" data-e="${r.id}">✏</button> <button class="btn sec mini" data-d="${r.id}">✕</button></td></tr>`).join('')
       || '<tr><td colspan="9" class="vacio">Sin cierres registrados en este año.</td></tr>';
   });
 }
@@ -726,6 +751,62 @@ $('olvide').onclick = async () => {
   $('l-err').textContent = '';
   await sb.auth.resetPasswordForEmail(m, { redirectTo: location.origin + location.pathname });
   toast('Si el correo corresponde a una cuenta, recibirás un enlace para elegir una nueva contraseña.');
+};
+
+/* ---------- Usuarios (solo súper administrador) ---------- */
+const ROLES = [['venerable','Venerable Maestro'],['secretario','Secretario'],['tesorero','Tesorero'],['miembro','Usuario (solo lectura)']];
+$('u-rol').innerHTML = ROLES.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+let USU = [], YO = null;
+async function gu(body) {   // llama a la función del servidor
+  const { data, error } = await sb.functions.invoke(FN, { body });
+  if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch (e) {} throw new Error(m); }
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+async function cargarUsuarios() {
+  const { data, error } = await sb.from('perfiles').select('id,nombre,email,rol').order('rol').order('nombre');
+  if (error) return toast('Error: ' + error.message);
+  USU = data;
+  $('u-tb').innerHTML = data.map(u => (u.id === YO || u.rol === 'super')
+    ? `<tr><td>${esc(u.nombre)}${u.id === YO ? ' (tú)' : ''}</td><td>${esc(u.email)}</td><td>${ETQ[u.rol]}</td><td></td></tr>`
+    : `<tr data-id="${u.id}"><td><input value="${esc(u.nombre)}" aria-label="Nombre"></td><td>${esc(u.email)}</td>
+      <td><select aria-label="Rol">${ROLES.map(([v, l]) => `<option value="${v}"${u.rol === v ? ' selected' : ''}>${l}</option>`).join('')}</select></td>
+      <td><div class="acc" style="margin:0"><button class="btn sec mini" data-k="g">Guardar</button><button class="btn sec mini" data-k="c">Cambiar correo</button><button class="btn sec mini" data-k="p">Nueva contraseña</button><button class="btn sec mini" data-k="x">Eliminar</button></div></td></tr>`).join('');
+}
+$('u-gen').onclick = () => {
+  const c = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  $('u-pass').value = [...crypto.getRandomValues(new Uint32Array(12))].map(n => c[n % c.length]).join('');
+};
+$('f-usuario').onsubmit = async e => {
+  e.preventDefault();
+  const d = { accion: 'crear', email: $('u-mail').value.trim(), nombre: $('u-nom').value.trim(), rol: $('u-rol').value, password: $('u-pass').value };
+  try { await gu(d); }
+  catch (err) { return toast('Error: ' + err.message); }
+  alert('Usuario creado.\n\nCorreo: ' + d.email + '\nContraseña inicial: ' + d.password + '\n\nEntrégasela por un medio privado.');
+  e.target.reset(); cargarUsuarios();
+};
+$('u-tb').onclick = async e => {
+  const b = e.target.closest('button'), tr = e.target.closest('tr'); if (!b) return;
+  const id = tr.dataset.id, u = USU.find(x => x.id === id), k = b.dataset.k;
+  try {
+    if (k === 'g') {
+      const r = await sb.from('perfiles').update({ nombre: tr.querySelector('input').value.trim(), rol: tr.querySelector('select').value }).eq('id', id).select('id');
+      if (r.error) throw r.error;
+      if (!r.data.length) throw new Error('No tienes permiso para cambiar este perfil.');
+      toast('Cambios guardados.');
+    } else if (k === 'c') {
+      const m = (prompt('Nuevo correo para ' + u.nombre + ':', u.email) || '').trim(); if (!m || m === u.email) return;
+      await gu({ accion: 'actualizar', id, email: m }); toast('Correo actualizado.');
+    } else if (k === 'p') {
+      const p = prompt('Nueva contraseña para ' + u.nombre + ' (mínimo 10 caracteres):'); if (!p) return;
+      if (p.length < 10) return toast('La contraseña debe tener al menos 10 caracteres.');
+      await gu({ accion: 'actualizar', id, password: p }); toast('Contraseña actualizada. Entrégasela por un medio privado.');
+    } else if (k === 'x') {
+      if (!confirm('¿Eliminar la cuenta de ' + u.nombre + ' (' + u.email + ')? No podrá volver a entrar.')) return;
+      await gu({ accion: 'eliminar', id }); toast('Cuenta eliminada.');
+    }
+  } catch (err) { toast('Error: ' + err.message); }
+  cargarUsuarios();
 };
 
 /* ---------- Inicio ---------- */
