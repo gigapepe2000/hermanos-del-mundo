@@ -64,8 +64,9 @@ nav select{margin:auto 0 auto auto;width:auto}
 .card img{display:block;max-width:100%;max-height:420px;border-radius:6px;margin:8px 0}
 h2{margin:22px 0 10px;font-size:20px}
 label.btn{display:inline-block;margin:0;color:var(--texto)}
-#modal{position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:16px;z-index:5}
-#f-miembro{background:var(--panel);border:1px solid var(--linea);border-radius:10px;padding:22px;width:100%;max-width:640px;max-height:92vh;overflow:auto}
+#modal,#m-clave{position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:16px;z-index:5}
+#f-miembro,#f-clave{background:var(--panel);border:1px solid var(--linea);border-radius:10px;padding:22px;width:100%;max-width:640px;max-height:92vh;overflow:auto}
+#f-clave{max-width:400px}
 #f-campos{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;margin-top:14px}
 #f-campos label:last-child{grid-column:1/-1}
 @media(max-width:560px){#f-campos{grid-template-columns:1fr}}
@@ -100,13 +101,14 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
     <label>Contraseña<input id="l-pass" type="password" autocomplete="current-password" required></label>
     <button class="btn" id="l-btn">Entrar</button>
     <p class="err" id="l-err" role="alert"></p>
+    <p style="margin:10px 0 0"><button type="button" class="btn sec mini" id="olvide">¿Olvidaste tu contraseña?</button></p>
   </form>
 </section>
 
 <div id="app" hidden>
   <header>
     <div><strong>R. y M. Logia “Hermanos del Mundo”</strong><small id="quien"></small></div>
-    <div class="acc" style="margin:0"><label class="btn sec adm">Cambiar portada<input id="portada-f" type="file" accept="image/*" hidden></label><button class="btn sec adm" id="imprimir" hidden>Imprimir</button><button class="btn sec" id="salir">Cerrar sesión</button></div>
+    <div class="acc" style="margin:0"><label class="btn sec adm">Cambiar portada<input id="portada-f" type="file" accept="image/*" hidden></label><button class="btn sec adm" id="cambiar-clave">Cambiar contraseña</button><button class="btn sec adm" id="imprimir" hidden>Imprimir</button><button class="btn sec" id="salir">Cerrar sesión</button></div>
   </header>
   <nav id="nav">
     <button data-t="avisos" class="on">Avisos</button>
@@ -129,6 +131,7 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
         <label class="chk"><input id="a-fijo" type="checkbox" style="width:auto;margin:0"> Fijar arriba</label>
         <button class="btn">Publicar aviso</button>
       </form>
+      <label class="chk"><input id="ver-arch" type="checkbox">Mostrar avisos archivados</label>
       <div id="lista-avisos"></div>
     </section>
 
@@ -175,10 +178,20 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
     <div class="acc"><button class="btn">Guardar</button><button type="button" class="btn sec" id="cancelar">Cancelar</button></div>
   </form>
 </div>
+<div id="m-clave" hidden>
+  <form id="f-clave">
+    <h2 id="c-tit" style="margin-top:0">Cambiar contraseña</h2>
+    <label>Nueva contraseña (mínimo 10 caracteres)<input id="c-1" type="password" autocomplete="new-password" minlength="10" required></label>
+    <label>Repite la contraseña<input id="c-2" type="password" autocomplete="new-password" minlength="10" required></label>
+    <p class="err" id="c-err" role="alert"></p>
+    <div class="acc"><button class="btn">Guardar</button><button type="button" class="btn sec" id="c-x">Cancelar</button></div>
+  </form>
+</div>
 <div id="toast" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
+const REC = /type=recovery/.test(location.hash);   // llegó desde el enlace de recuperación
 const sb = supabase.createClient('https://glinbmajqeclisjtozfq.supabase.co', 'sb_publishable_bMQIeS6etj_0yRjGm_UmNg_pVNUXBv1');
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -246,7 +259,7 @@ $('nav').onclick = e => {
 
 /* ---------- Avisos ---------- */
 async function cargarAvisos() {
-  const { data, error } = await sb.from('avisos').select('*').eq('archivado', false)
+  const { data, error } = await sb.from('avisos').select('*').eq('archivado', $('ver-arch').checked)
     .order('fijado', { ascending: false }).order('fecha', { ascending: false }).order('created_at', { ascending: false });
   if (error) { $('lista-avisos').innerHTML = `<p class="err">${esc(error.message)}</p>`; return; }
   const rutas = data.map(a => a.imagen_path).filter(Boolean), U = {};
@@ -259,10 +272,10 @@ async function cargarAvisos() {
       <p>${esc(a.texto)}</p>
       <div class="acc adm">
         <button class="btn sec mini" data-a="fijar" data-id="${a.id}" data-v="${a.fijado}">${a.fijado ? 'Quitar fijado' : 'Fijar'}</button>
-        <button class="btn sec mini" data-a="archivar" data-id="${a.id}">Archivar</button>
+        <button class="btn sec mini" data-a="archivar" data-id="${a.id}" data-ar="${a.archivado}">${a.archivado ? 'Restaurar' : 'Archivar'}</button>
         <button class="btn sec mini" data-a="borrar" data-id="${a.id}" data-p="${esc(a.imagen_path || '')}">Eliminar</button>
       </div>
-    </article>`).join('') : '<p class="vacio">Todavía no hay avisos publicados.</p>';
+    </article>`).join('') : `<p class="vacio">${$('ver-arch').checked ? 'No hay avisos archivados.' : 'Todavía no hay avisos publicados.'}</p>`;
 }
 $('f-aviso').onsubmit = async e => {
   e.preventDefault();
@@ -279,9 +292,9 @@ $('f-aviso').onsubmit = async e => {
 };
 $('lista-avisos').onclick = async e => {
   const b = e.target.closest('button'); if (!b) return;
-  const { a, id, v, p } = b.dataset; let r;
+  const { a, id, v, p, ar } = b.dataset; let r;
   if (a === 'fijar') r = await sb.from('avisos').update({ fijado: v !== 'true' }).eq('id', id);
-  if (a === 'archivar') r = await sb.from('avisos').update({ archivado: true }).eq('id', id);
+  if (a === 'archivar') r = await sb.from('avisos').update({ archivado: ar !== 'true' }).eq('id', id);
   if (a === 'borrar') { if (!confirm('¿Eliminar este aviso definitivamente?')) return; r = await sb.from('avisos').delete().eq('id', id); if (!r.error && p) await sb.storage.from('avisos').remove([p]); }
   if (r?.error) return toast('Error: ' + r.error.message);
   cargarAvisos();
@@ -683,11 +696,48 @@ $('imprimir').onclick = () => {
   window.print();
 };
 
+$('ver-arch').onchange = cargarAvisos;
+
+/* ---------- Contraseña ---------- */
+let enRec = false;
+const abrirClave = rec => {
+  enRec = rec; $('c-tit').textContent = rec ? 'Elige tu nueva contraseña' : 'Cambiar contraseña';
+  $('c-x').hidden = rec; $('f-clave').reset(); $('c-err').textContent = ''; $('m-clave').hidden = false;
+};
+$('cambiar-clave').onclick = () => abrirClave(false);
+$('c-x').onclick = () => $('m-clave').hidden = true;
+$('f-clave').onsubmit = async e => {
+  e.preventDefault();
+  const a = $('c-1').value;
+  if (a.length < 10) return $('c-err').textContent = 'La contraseña debe tener al menos 10 caracteres.';
+  if (a !== $('c-2').value) return $('c-err').textContent = 'Las dos contraseñas no coinciden.';
+  const { error } = await sb.auth.updateUser({ password: a });
+  if (error) return $('c-err').textContent = 'No se pudo cambiar: ' + error.message;
+  $('m-clave').hidden = true; toast('Contraseña actualizada.');
+  if (enRec) {
+    enRec = false; history.replaceState(null, '', location.pathname);
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) entrar(session);
+  }
+};
+$('olvide').onclick = async () => {
+  const m = $('l-mail').value.trim();
+  if (!m) return $('l-err').textContent = 'Escribe primero tu correo en el campo de arriba.';
+  $('l-err').textContent = '';
+  await sb.auth.resetPasswordForEmail(m, { redirectTo: location.origin + location.pathname });
+  toast('Si el correo corresponde a una cuenta, recibirás un enlace para elegir una nueva contraseña.');
+};
+
 /* ---------- Inicio ---------- */
 (async () => {
   const { data: c } = await sb.from('config').select('valor').eq('clave', 'portada_url').maybeSingle();
   if (c && /^https:\/\//.test(c.valor || '')) $('portada').innerHTML = `<img src="${esc(c.valor)}" alt="Imagen de la logia">`;
   const { data: { session } } = await sb.auth.getSession();
+  if (REC) {
+    if (session) { $('login').hidden = true; abrirClave(true); }
+    else $('l-err').textContent = 'El enlace de recuperación no es válido o caducó. Solicita uno nuevo.';
+    return;
+  }
   if (session) await entrar(session);
 })();
 </script>
