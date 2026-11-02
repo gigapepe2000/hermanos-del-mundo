@@ -102,6 +102,10 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
     <button class="btn" id="l-btn">Entrar</button>
     <p class="err" id="l-err" role="alert"></p>
     <p style="margin:10px 0 0"><button type="button" class="btn sec mini" id="olvide">¿Olvidaste tu contraseña?</button></p>
+    <br><br>
+     <p style="font-size: 10px;">
+  Desarrollada por: <a href="mailto:gigapepe2000@gmail.com">gigapepe2000</a><br>
+</p>
   </form>
 </section>
 
@@ -151,7 +155,7 @@ label.btn{display:inline-block;margin:0;color:var(--texto)}
 
     <section id="t-estadisticas" hidden>
       <div class="grid" id="st"></div>
-      <div class="acc adm of"><button class="btn sec" id="resp">Descargar respaldo completo</button></div>
+      <div class="acc adm of"><button class="btn sec" id="resp">Descargar respaldo completo</button><button class="btn sec sup" id="rest-b">Restaurar respaldo…</button><input type="file" id="rest-f" accept=".json,application/json" hidden></div>
     </section>
 
     <section id="t-fondos" hidden><label class="chk adm of" style="margin-bottom:6px"><input id="imp-fx" type="checkbox">Incluir el fondo extra al imprimir</label><div id="fo"></div><div id="fx" class="of"></div></section>
@@ -644,17 +648,38 @@ function renderStats() {
     ['Cuotas al día', bl.filter(b => b >= 0).length], ['Atrasados 3 meses o más', bl.filter(b => b <= -3).length]];
   $('st').innerHTML = S.map(([l, v]) => `<div class="card"><div class="num">${v}</div>${l}</div>`).join('');
 }
+async function leerRespaldo() {
+  const K = { asistencia: ['sesion_id','miembro_id'], cuotas: ['miembro_id','anio','mes'], cuotas_extra_marcas: ['extra_id','miembro_id'] };
+  const B = { formato: 'logia-hermanos-del-mundo', version: 1, generado: new Date().toISOString().slice(0, 10) };
+  for (const t of ['miembros','sesiones','asistencia','cuotas','cuotas_extra','cuotas_extra_marcas','fondos','fondo_extra','avisos'])
+    B[t] = await todo(() => { let q = sb.from(t).select('*'); (K[t] || ['id']).forEach(c => q = q.order(c)); return q; });
+  return B;
+}
+function bajarRespaldo(B, prefijo) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(B, null, 1)], { type: 'application/json' }));
+  a.download = (prefijo || 'LogiaHermanosDelMundo_respaldo_') + B.generado + '.json'; a.click();
+}
 $('resp').onclick = async () => {
+  try { bajarRespaldo(await leerRespaldo()); toast('Respaldo descargado. Guárdalo en un lugar privado.'); }
+  catch (err) { toast('Error al crear el respaldo: ' + err.message); }
+};
+$('rest-b').onclick = () => $('rest-f').click();
+$('rest-f').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   try {
-    const K = { asistencia: ['sesion_id','miembro_id'], cuotas: ['miembro_id','anio','mes'], cuotas_extra_marcas: ['extra_id','miembro_id'] };
-    const B = { formato: 'logia-hermanos-del-mundo', version: 1, generado: new Date().toISOString().slice(0, 10) };
-    for (const t of ['miembros','sesiones','asistencia','cuotas','cuotas_extra','cuotas_extra_marcas','fondos','fondo_extra','avisos'])
-      B[t] = await todo(() => { let q = sb.from(t).select('*'); (K[t] || ['id']).forEach(c => q = q.order(c)); return q; });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(B, null, 1)], { type: 'application/json' }));
-    a.download = 'LogiaHermanosDelMundo_respaldo_' + B.generado + '.json'; a.click();
-    toast('Respaldo descargado. Guárdalo en un lugar privado.');
-  } catch (err) { toast('Error al crear el respaldo: ' + err.message); }
+    const B = JSON.parse(await f.text());
+    if (B.formato !== 'logia-hermanos-del-mundo') throw new Error('El archivo no es un respaldo de la logia.');
+    const n = t => Array.isArray(B[t]) ? B[t].length : 0;
+    if (!confirm('Vas a REEMPLAZAR todos los datos actuales por los del archivo (' + B.generado + '):\n\n' +
+      n('miembros') + ' miembros, ' + n('sesiones') + ' sesiones, ' + n('asistencia') + ' asistencias, ' + n('cuotas') + ' cuotas, ' +
+      n('fondos') + ' cierres de fondos, ' + n('avisos') + ' avisos.\n\nAntes se descargará un respaldo de los datos actuales. ¿Continuar?')) return;
+    bajarRespaldo(await leerRespaldo(), 'ANTES_de_restaurar_');
+    const { error } = await sb.rpc('restaurar_respaldo', { datos: B });
+    if (error) throw error;
+    toast('Respaldo restaurado.');
+    await Promise.all([cargarAvisos(), cargarMiembros()]); cargarAC();
+  } catch (err) { toast('No se restauró nada: ' + err.message); }
 };
 
 /* ---------- Fondos ---------- */
